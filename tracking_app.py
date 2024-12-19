@@ -56,24 +56,29 @@ def deleteQueue(queueId: queueConfigDelete):
 
 @app.post('/track/')
 def track(messages: List[dict]):
-    # read all config
-    engine = sa.create_engine(conn_str)
-    with engine.connect() as conn:
-        config = pd.read_sql(f'SELECT * FROM {queue_config_table};', conn)
-    
-    results = {}
-    keys = ['parent_message_id','Brand','Model','Product Status','Price','Time','want_to_buy','Color','Material','Strap','Dial','ManufactureYear']
-    for conf in config.to_dict(orient='records'):
-        r = []
-        for mes in messages:
-            if condition_filter(mes, conf):
-                r.append({key: mes[key] for key in keys})
+    if checkTableExist(queue_config_table, engine):
+        # read all config
+        engine = sa.create_engine(conn_str)
+        with engine.connect() as conn:
+            config = pd.read_sql(f'SELECT * FROM {queue_config_table};', conn)
         
-        if len(r) > 0:
-            results[conf['userId_refId']] = r
-    
-    push_write_data(results) 
-    
+        if config.empty:
+            pass
+        else:
+            results = {}
+            keys = ['parent_message_id','Brand','Model','Product Status','Price','Time','want_to_buy','Color','Material','Strap','Dial','ManufactureYear']
+            for conf in config.to_dict(orient='records'):
+                r = []
+                for mes in messages:
+                    if condition_filter(mes, conf):
+                        r.append({key: mes[key] for key in keys})
+                
+                if len(r) > 0:
+                    results[conf['userId_refId']] = r
+            
+            push_write_data(results) 
+    else:
+        pass        
 
                 
         
